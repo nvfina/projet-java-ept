@@ -1,0 +1,37 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: procurement-service
+
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/ept_procurement?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
+    password: ${MYSQL_ROOT_PASSWORD:ept_root_2024}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
+# Configuration JWT (même clé que les autres services)
+jwt:
+  secret: ${JWT_SECRET:VotreCleSecreteTresLongueEtComplexePourJWT2024EPTGestionMarches}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+# URL du service fournisseur
+supplier-service:
+  url: ${SUPPLIER_SERVICE_URL:http://localhost:8083}
+
+# Documentation OpenAPI
+springdoc:
+  api-docs:
+    path: /api/procurement/v3/api-docs
+  swagger-ui:
+    path: /api/procurement/swagger-ui.html

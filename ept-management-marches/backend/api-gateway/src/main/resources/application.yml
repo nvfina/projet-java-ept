@@ -1,0 +1,53 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:4200"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin, RETAIN_FIRST
+        - DedupeResponseHeader=Access-Control-Allow-Credentials, RETAIN_FIRST
+      routes:
+        - id: auth-service
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/auth/**,/api/utilisateurs/**,/api/services/**
+
+        - id: procurement-service
+          uri: ${PROCUREMENT_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/besoins/**,/api/marches/**,/api/lots/**,/api/offres/**,/api/livraisons/**,/api/statistiques/**
+
+        - id: supplier-service
+          uri: ${SUPPLIER_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/fournisseurs/**
+
+        - id: dashboard-service
+          uri: ${DASHBOARD_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/dashboard/**,/api/rapports/**
+
+        - id: chatbot-service
+          uri: ${CHATBOT_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/chatbot/**
+
+jwt:
+  secret: ${JWT_SECRET:VotreCleSecreteTresLongueEtComplexePourJWT2024EPTGestionMarches}

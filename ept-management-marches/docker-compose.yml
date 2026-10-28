@@ -1,0 +1,160 @@
+services:
+  # === Base de données MySQL ===
+  mysql:
+    image: mysql:8.0
+    container_name: ept-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-ept_root_2024}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-ept_root_2024}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ept-network
+
+  # === Service d'authentification ===
+  auth-service:
+    build:
+      context: ./backend/auth-service
+      dockerfile: Dockerfile
+    container_name: ept-auth-service
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${DB_AUTH_NAME:-ept_auth}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-ept_root_2024}
+      JWT_SECRET: ${JWT_SECRET:-VotreCleSecreteTresLongueEtComplexePourJWT2024EPTGestionMarches}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+    ports:
+      - "${AUTH_SERVICE_PORT:-8081}:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - ept-network
+
+  # === Service des fournisseurs ===
+  supplier-service:
+    build:
+      context: ./backend/supplier-service
+      dockerfile: Dockerfile
+    container_name: ept-supplier-service
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${DB_SUPPLIER_NAME:-ept_supplier}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-ept_root_2024}
+      JWT_SECRET: ${JWT_SECRET:-VotreCleSecreteTresLongueEtComplexePourJWT2024EPTGestionMarches}
+      AUTH_SERVICE_URL: http://auth-service:8081
+    ports:
+      - "${SUPPLIER_SERVICE_PORT:-8083}:8083"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - ept-network
+
+  # === Service d'approvisionnement ===
+  procurement-service:
+    build:
+      context: ./backend/procurement-service
+      dockerfile: Dockerfile
+    container_name: ept-procurement-service
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${DB_PROCUREMENT_NAME:-ept_procurement}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-ept_root_2024}
+      JWT_SECRET: ${JWT_SECRET:-VotreCleSecreteTresLongueEtComplexePourJWT2024EPTGestionMarches}
+      SUPPLIER_SERVICE_URL: http://supplier-service:8083
+    ports:
+      - "${PROCUREMENT_SERVICE_PORT:-8082}:8082"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - ept-network
+
+  # === Service tableau de bord ===
+  dashboard-service:
+    build:
+      context: ./backend/dashboard-service
+      dockerfile: Dockerfile
+    container_name: ept-dashboard-service
+    restart: unless-stopped
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-VotreCleSecreteTresLongueEtComplexePourJWT2024EPTGestionMarches}
+      PROCUREMENT_SERVICE_URL: http://procurement-service:8082
+      SUPPLIER_SERVICE_URL: http://supplier-service:8083
+      AUTH_SERVICE_URL: http://auth-service:8081
+    ports:
+      - "${DASHBOARD_SERVICE_PORT:-8084}:8084"
+    depends_on:
+      - auth-service
+      - procurement-service
+      - supplier-service
+    networks:
+      - ept-network
+
+  # === Service chatbot ===
+  chatbot-service:
+    build:
+      context: ./backend/chatbot-service
+      dockerfile: Dockerfile
+    container_name: ept-chatbot-service
+    restart: unless-stopped
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-VotreCleSecreteTresLongueEtComplexePourJWT2024EPTGestionMarches}
+      PROCUREMENT_SERVICE_URL: http://procurement-service:8082
+      SUPPLIER_SERVICE_URL: http://supplier-service:8083
+    ports:
+      - "${CHATBOT_SERVICE_PORT:-8085}:8085"
+    depends_on:
+      - procurement-service
+      - supplier-service
+    networks:
+      - ept-network
+
+  # === API Gateway ===
+  api-gateway:
+    build:
+      context: ./backend/api-gateway
+      dockerfile: Dockerfile
+    container_name: ept-api-gateway
+    restart: unless-stopped
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:8081
+      PROCUREMENT_SERVICE_URL: http://procurement-service:8082
+      SUPPLIER_SERVICE_URL: http://supplier-service:8083
+      DASHBOARD_SERVICE_URL: http://dashboard-service:8084
+      CHATBOT_SERVICE_URL: http://chatbot-service:8085
+      JWT_SECRET: ${JWT_SECRET:-VotreCleSecreteTresLongueEtComplexePourJWT2024EPTGestionMarches}
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    depends_on:
+      - auth-service
+      - procurement-service
+      - supplier-service
+      - dashboard-service
+      - chatbot-service
+    networks:
+      - ept-network
+
+volumes:
+  mysql-data:
+    driver: local
+
+networks:
+  ept-network:
+    driver: bridge

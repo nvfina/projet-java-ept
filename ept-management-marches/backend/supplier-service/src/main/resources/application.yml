@@ -1,0 +1,39 @@
+# ============================================================
+# Configuration du Service Fournisseurs - EPT
+# ============================================================
+server:
+  port: 8083
+
+spring:
+  application:
+    name: supplier-service
+
+  # ---------- Base de données MySQL ----------
+  datasource:
+    url: jdbc:mysql://localhost:3306/ept_supplier?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
+    password: ${MYSQL_ROOT_PASSWORD:ept_root_2024}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # ---------- JPA / Hibernate ----------
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+    open-in-view: false
+
+# ---------- Configuration JWT ----------
+jwt:
+  secret: ${JWT_SECRET:VotreCleSecreteTresLongueEtComplexePourJWT2024EPTGestionMarches}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+# ---------- Documentation OpenAPI / Swagger ----------
+springdoc:
+  api-docs:
+    path: /api/fournisseurs/v3/api-docs
+  swagger-ui:
+    path: /api/fournisseurs/swagger-ui.html

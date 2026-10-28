@@ -1,0 +1,20 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: chatbot-service
+
+jwt:
+  secret: ${JWT_SECRET:VotreCleSecreteTresLongueEtComplexePourJWT2024EPTGestionMarches}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+services:
+  procurement-url: ${PROCUREMENT_SERVICE_URL:http://localhost:8082}
+  supplier-url: ${SUPPLIER_SERVICE_URL:http://localhost:8083}
+
+springdoc:
+  api-docs:
+    path: /api/chatbot/v3/api-docs
+  swagger-ui:
+    path: /api/chatbot/swagger-ui.html
